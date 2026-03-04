@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────
+# Fruit & Vegetable Detector — Requirements
+# GitHub: SHAHRIYARTAUFIK/Fruit-and-veg-
+# ─────────────────────────────────────────
+# Install: pip install -r requirements.txt
+
+ultralytics>=8.2.0
+transformers>=4.40.0
+torch>=2.1.0
+torchvision>=0.16.0
+Pillow>=10.0.0
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+gradio>=4.30.0
+huggingface-hub>=0.22.0
