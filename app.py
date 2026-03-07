@@ -10,7 +10,7 @@ ARCHITECTURE (100% reliable — no custom YOLO required)
 Step 1 → facebook/detr-resnet-50  (DETR object detector)
          Finds bounding boxes for anything food-like in the image.
          Uses standard COCO classes to locate regions.
-
+ 
 Step 2 → jazzmacedo/fruits-and-vegetables-detector-36  (ViT)
          Runs on EACH detected crop to give the ACCURATE label
          (Apple, Mango, Carrot, Broccoli … 36 classes total).
