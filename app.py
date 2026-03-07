@@ -4,7 +4,7 @@
 ║   GitHub: SHAHRIYARTAUFIK/Fruit-and-veg-                ║
 ║   Run:  python app.py                                   ║
 ╚══════════════════════════════════════════════════════════╝
-
+ 
 ARCHITECTURE (100% reliable — no custom YOLO required)
 ───────────────────────────────────────────────────────
 Step 1 → facebook/detr-resnet-50  (DETR object detector)
