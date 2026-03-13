@@ -5,13 +5,9 @@ import numpy as np
 from PIL import Image, ImageDraw
 import gradio as gr
 
-# ── COCO class ids that could be produce / food ───────────────
-# DETR uses these same COCO labels — we cast a wide net so we
-# catch any region that might contain a fruit or vegetable.
 FOOD_COCO_LABELS = {
     "banana", "apple", "sandwich", "orange", "broccoli",
-    "carrot", "hot dog", "pizza", "donut", "cake",
-    "bowl",   # sometimes catches round fruit in a bowl
+    "carrot", "hot dog", "pizza", "donut", "cake", "bowl",
 }
 
 BOX_COLORS = [
@@ -35,15 +31,15 @@ EMOJI_MAP = {
 }
 
 FRUITS = {
-    "apple", "banana", "orange", "grape", "strawberry", "watermelon", 
-    "mango", "pineapple", "pear", "peach", "cherry", "lemon", "avocado", 
+    "apple", "banana", "orange", "grape", "strawberry", "watermelon",
+    "mango", "pineapple", "pear", "peach", "cherry", "lemon", "avocado",
     "tomato", "coconut", "kiwi", "pomegranate", "sweetpotato",
 }
 
 VEGETABLES = {
-    "broccoli", "carrot", "corn", "cucumber", "garlic", "onion", "pepper", 
-    "potato", "eggplant", "lettuce", "mushroom", "beetroot", "spinach", 
-    "capsicum", "paprika", "cauliflower", "cabbage", "ginger", "bell pepper", 
+    "broccoli", "carrot", "corn", "cucumber", "garlic", "onion", "pepper",
+    "potato", "eggplant", "lettuce", "mushroom", "beetroot", "spinach",
+    "capsicum", "paprika", "cauliflower", "cabbage", "ginger", "bell pepper",
     "chilli pepper", "peas",
 }
 
@@ -54,84 +50,60 @@ def get_emoji(label: str) -> str:
             return emo
     return "🌿"
 
-
 def get_category(label: str) -> str:
-    """Determine if item is a fruit or vegetable."""
     label_lower = label.lower()
-    
-    # Check if fruit
     if label_lower in FRUITS:
         return "Fruit"
-    
-    # Check if vegetable
     if label_lower in VEGETABLES:
         return "Vegetable"
-    
-    # Check for partial matches
     for fruit in FRUITS:
         if fruit in label_lower:
             return "Fruit"
     for veg in VEGETABLES:
         if veg in label_lower:
             return "Vegetable"
-    
     return "Unknown"
 
-# ── Lazy-load models ──────────────────────────────────────────
 _detr_pipeline = None
 _vit_pipeline  = None
 
 def load_models():
     global _detr_pipeline, _vit_pipeline
-
     if _detr_pipeline is None:
         from transformers import pipeline
-        print("⏳  Loading DETR object detector …")
         _detr_pipeline = pipeline(
             "object-detection",
             model="facebook/detr-resnet-50",
-            revision="no_timm",          # stable revision
+            revision="no_timm",
             threshold=0.5,
         )
-        print("✅  DETR ready")
-
     if _vit_pipeline is None:
         from transformers import pipeline
-        print("⏳  Loading ViT 36-class classifier …")
         _vit_pipeline = pipeline(
             "image-classification",
             model="jazzmacedo/fruits-and-vegetables-detector-36",
             top_k=5,
         )
-        print("✅  ViT classifier ready")
-
     return _detr_pipeline, _vit_pipeline
 
-
 def classify(clf, region: Image.Image) -> tuple:
-    """Run ViT classifier → (label, confidence)."""
     preds = clf(region)
     if not preds:
         return "Unknown", 0.0
     top = preds[0]
     return top["label"].replace("_", " ").title(), top["score"]
 
-
-# ── Core detection ────────────────────────────────────────────
 def detect_produce(image: np.ndarray):
     if image is None:
         return None, "⚠️ Please upload an image first."
 
     detr, vit = load_models()
-
     pil_img = Image.fromarray(image).convert("RGB")
     W, H    = pil_img.size
     draw    = ImageDraw.Draw(pil_img)
 
-    # ── Step 1: DETR finds food-like bounding boxes ───────────
     raw_detections = detr(pil_img)
 
-    # Keep only food/produce-related detections
     food_boxes = []
     for det in raw_detections:
         label = det["label"].lower()
@@ -144,18 +116,15 @@ def detect_produce(image: np.ndarray):
                 score
             ))
 
-    # ── Step 2: ViT re-classifies each crop (accurate label) ──
-    annotated = []   # (vit_label, vit_conf, box)
+    annotated = []
 
     for idx, (x1, y1, x2, y2, _) in enumerate(food_boxes):
-        crop              = pil_img.crop((x1, y1, x2, y2))
+        crop = pil_img.crop((x1, y1, x2, y2))
         vit_label, vit_conf = classify(vit, crop)
-        color             = BOX_COLORS[idx % len(BOX_COLORS)]
+        color = BOX_COLORS[idx % len(BOX_COLORS)]
 
-        # Draw box
         draw.rectangle([x1, y1, x2, y2], outline=color, width=4)
 
-        # Badge with ACCURATE ViT label and category
         category = get_category(vit_label)
         badge = f"  {category}: {vit_label}  {vit_conf:.0%}  "
         bw    = len(badge) * 8
@@ -165,14 +134,12 @@ def detect_produce(image: np.ndarray):
 
         annotated.append((vit_label, vit_conf))
 
-    # ── Step 3: ViT on the whole image (always run) ───────────
     whole_preds = vit(pil_img)
     top_whole   = [
         (p["label"].replace("_", " ").title(), p["score"])
         for p in whole_preds
     ]
 
-    # ── Step 4: If DETR found nothing, box the whole image ────
     if not food_boxes and top_whole:
         best_label, best_conf = top_whole[0]
         color = BOX_COLORS[0]
@@ -184,7 +151,6 @@ def detect_produce(image: np.ndarray):
         draw.rectangle([pad, pad, pad + bw, pad + 26], fill=color)
         draw.text((pad + 4, pad + 4), badge, fill="white")
 
-    # ── Step 5: Build report ──────────────────────────────────
     report = "## 🔍 Detection Results\n\n"
 
     if annotated:
@@ -216,7 +182,6 @@ def detect_produce(image: np.ndarray):
     return np.array(pil_img), report
 
 
-# ── Gradio UI ─────────────────────────────────────────────────
 css = """
 #title {
     text-align: center;
@@ -260,16 +225,8 @@ with gr.Blocks(
 ) as demo:
 
     gr.HTML('<div id="title">🥝🥕 Fruit & Vegetable Detector</div>')
-    gr.HTML(
-        '<div id="subtitle">'
-        "Upload any photo — AI locates and accurately names every fruit or vegetable"
-        "</div>"
-    )
-    gr.HTML(
-        '<div style="text-align:center">'
-        '<span id="badge">✅ DETR locates · ViT 36-class names accurately</span>'
-        "</div>"
-    )
+    gr.HTML('<div id="subtitle">Upload any photo — AI locates and accurately names every fruit or vegetable</div>')
+    gr.HTML('<div style="text-align:center"><span id="badge">✅ DETR locates · ViT 36-class names accurately</span></div>')
 
     with gr.Row(equal_height=True):
         with gr.Column(scale=1):
@@ -294,18 +251,10 @@ with gr.Blocks(
             )
 
         with gr.Column(scale=1):
-            out_image = gr.Image(
-                label="📸 Annotated Result",
-                height=420,
-                interactive=False,
-            )
-            out_text = gr.Markdown()
+            out_image = gr.Image(label="📸 Annotated Result", height=420, interactive=False)
+            out_text  = gr.Markdown()
 
-    detect_btn.click(
-        fn=detect_produce,
-        inputs=inp_image,
-        outputs=[out_image, out_text],
-    )
+    detect_btn.click(fn=detect_produce, inputs=inp_image, outputs=[out_image, out_text])
 
     gr.Markdown(
         "---\n"
@@ -316,13 +265,4 @@ with gr.Blocks(
     )
 
 if __name__ == "__main__":
-    print("\n" + "=" * 58)
-    print("  🥝  Fruit & Vegetable Detector  v4  (FINAL)")
-    print("  DETR locates · ViT accurately names (36 classes)")
-    print("=" * 58 + "\n")
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        inbrowser=True,
-        show_error=True,
-    )
+    demo.launch(server_name="0.0.0.0", server_port=7860, inbrowser=True, show_error=True)
