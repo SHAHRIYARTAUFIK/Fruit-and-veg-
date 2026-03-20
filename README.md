@@ -8,7 +8,7 @@
 ![Gradio](https://img.shields.io/badge/UI-Gradio-yellow)
 ![License](https://img.shields.io/github/license/SHAHRIYARTAUFIK/Fruit-and-veg-)
   
----
+--- 
  
 ## ✨ Features
 
