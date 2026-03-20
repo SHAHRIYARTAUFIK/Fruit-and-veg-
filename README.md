@@ -9,7 +9,7 @@
 ![License](https://img.shields.io/github/license/SHAHRIYARTAUFIK/Fruit-and-veg-)
   
 --- 
- 
+
 ## ✨ Features
 
 | Feature | Detail |
