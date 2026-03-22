@@ -10,7 +10,7 @@ FOOD_COCO_LABELS = {
     "banana", "apple", "sandwich", "orange", "broccoli",
     "carrot", "hot dog", "pizza", "donut", "cake", "bowl",
 }
- 
+
 BOX_COLORS = [
     "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
     "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
