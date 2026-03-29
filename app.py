@@ -2,7 +2,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
  
-import numpy as np
+import numpy as np 
 from PIL import Image, ImageDraw
 import gradio as gr
 
